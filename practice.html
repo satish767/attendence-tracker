@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: sans-serif;
+      background-color: #f0f0f0;
+    }
+    .layout {
+      display: flex;
+      height: 100vh;
+    }
+    .sidebar {
+      width: 240px;
+      background-color: #1976d2;
+      color: white;
+      padding: 20px;
+    }
+    .sidebar h2 {
+      font-size: 18px;
+      margin-bottom: 30px;
+    }
+    .sidebar button {
+      display: block;
+      width: 100%;
+      padding: 10px 15px;
+      margin-bottom: 12px;
+      background-color: white;
+      color: #1976d2;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+      text-align: left;
+    }
+    .sidebar button:hover {
+      background-color: #e3f2fd;
+    }
+    .main {
+      flex-grow: 1;
+      padding: 30px;
+      background: white;
+      overflow-y: auto;
+    }
+    .profile {
+      text-align: right;
+      padding: 10px 20px;
+      background-color: #eeeeee;
+      font-weight: bold;
+    }
+    .section {
+      display: none;
+      margin-top: 20px;
+    }
+    .qr-image {
+      margin-top: 20px;
+      max-width: 300px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ✅ Display logged-in admin email -->
+<div class="profile">
+  Logged in as: {{ email }}
+</div>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>Admin Dashboard</h2>
+    <button onclick="generateQR(); showSection('qr')">📷 Generate QR Code</button>
+    <button onclick="showSection('attendance')">📋 View All Attendance</button>
+    <button onclick="logout()">🔓 Logout</button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main">
+    <!-- QR Code Section -->
+    <div id="qr" class="section">
+      <h3>Generate Today's QR Code</h3>
+      <div>
+        <img id="qrImage" class="qr-image" src="" alt="QR Code will appear here">
+      </div>
+    </div>
+
+    <!-- Attendance Section -->
+    <div id="attendance" class="section">
+      <h3>All Students Attendance</h3>
+      <p>This section will show all attendance data.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  function showSection(id) {
+    const all = ['qr', 'attendance'];
+    all.forEach(sec => document.getElementById(sec).style.display = 'none');
+    document.getElementById(id).style.display = 'block';
+  }
+
+  function generateQR() {
+    fetch('/generate_qr')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          document.getElementById("qrImage").src = "/static/qr.png?ts=" + new Date().getTime();
+        }
+      });
+  }
+
+  function logout() {
+    window.location.href = "/logout";
+  }
+
+  showSection('qr'); // show QR by default
+</script>
+</body>
+</html>

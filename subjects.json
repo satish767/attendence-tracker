@@ -1,0 +1,8 @@
+{
+  "subjects": [
+    { "id": "SUB001", "name": "Math" },
+    { "id": "SUB002", "name": "Physics" },
+    { "id": "SUB003", "name": "Chemistry" }
+    
+  ]
+}

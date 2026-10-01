@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Student Dashboard</title>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="/static/studentstyle.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+    }
+
+    .layout {
+      display: flex;
+      height: 100vh;
+    }
+
+    .sidebar {
+      width: 220px;
+      background-color: #1976d2;
+      padding: 30px 20px;
+      color: white;
+    }
+
+    .sidebar h2 {
+      font-size: 18px;
+      margin-bottom: 30px;
+    }
+
+    .sidebar button {
+      display: block;
+      width: 100%;
+      padding: 10px 15px;
+      margin-bottom: 12px;
+      background-color: white;
+      color: #1976d2;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .sidebar button:hover {
+      background-color: #e3f2fd;
+    }
+
+    .main {
+  flex-grow: 1;
+  padding: 30px;
+  background-color: #f9f9f9;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* 👈 Important to push content left */
+}
+
+
+    .profile {
+      text-align: right;
+      background-color: #eeeeee;
+      padding: 10px 20px;
+      font-weight: bold;
+    }
+
+    .section {
+  display: none;
+  margin-top: 0;
+  align-items: flex-start;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+
+    #reader {
+      width: 300px;
+      margin-top: 10px;
+    }
+
+    canvas {
+      margin-top: 20px;
+      max-width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+<!-- 👤 Logged in email -->
+<div class="profile">
+  {{ name }}
+</div>
+
+<div class="layout">
+  <!-- 🔹 Sidebar -->
+  <div class="sidebar">
+    <h2>Student Dashboard</h2>
+    <button onclick="showSection('scan')">📷 Mark Attendance</button>
+    <button onclick="showSection('total')">📋 View Total Attendance</button>
+    <button onclick="showSection('graph')">📈 View Attendance Graph</button>
+    <button onclick="logout()">🔓 Logout</button>
+  </div>
+
+  <!-- 🔸 Right-side Content Panel -->
+  <div class="main">
+    <div id="scan" class="section">
+      <h3>Scan QR Code</h3>
+      <div id="reader"></div>
+      <pre id="scanOutput"></pre>
+    </div>
+
+    <div id="total" class="section">
+      <h3>Total Attendance</h3>
+      <p id="totalCount">Loading...</p>
+    </div>
+
+    <div id="graph" class="section">
+      <h3>Attendance Graph</h3>
+      <canvas id="chart" height="200"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+  let html5QrCode;
+
+  function showSection(id) {
+    const all = ['scan', 'total', 'graph'];
+    all.forEach(sec => document.getElementById(sec).style.display = 'none');
+    document.getElementById(id).style.display = 'block';
+
+    if (id === 'scan') startScanner();
+    if (id === 'total') loadTotalAttendance();
+    if (id === 'graph') drawChart();
+  }
+
+  function startScanner() {
+    document.getElementById("scanOutput").innerText = "Waiting for scan...";
+
+    if (html5QrCode) {
+      html5QrCode.stop().then(() => {
+        html5QrCode.clear();
+        html5QrCode = new Html5Qrcode("reader");
+        beginScan();
+      }).catch(() => {
+        html5QrCode = new Html5Qrcode("reader");
+        beginScan();
+      });
+    } else {
+      html5QrCode = new Html5Qrcode("reader");
+      beginScan();
+    }
+  }
+
+  function beginScan() {
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      qrMessage => {
+        fetch('/mark_attendance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ qr: qrMessage })
+        })
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("scanOutput").innerText =
+            `✅ Marked attendance for subject ${data.subject} on ${data.date}`;
+          html5QrCode.stop();
+        });
+      },
+      error => {
+        // Ignore scanner errors
+      }
+    );
+  }
+
+  async function loadTotalAttendance() {
+  const [attendanceRes, subjectRes] = await Promise.all([
+    fetch('/get_attendance'),
+    fetch('/get_subjects')
+  ]);
+
+  const data = await attendanceRes.json();
+  const subjectsData = await subjectRes.json();
+  const email = "{{ email }}";
+
+  // Create ID → Name map
+  const idToName = {};
+  subjectsData.subjects.forEach(s => {
+    idToName[s.id] = s.name;
+  });
+
+  const subjectCounts = {};
+
+  for (let date in data.attendance) {
+    for (let subjectId in data.attendance[date]) {
+      if (!subjectCounts[subjectId]) subjectCounts[subjectId] = 0;
+      if (data.attendance[date][subjectId].includes(email)) {
+        subjectCounts[subjectId]++;
+      }
+    }
+  }
+
+  let output = "<ul>";
+  for (let subId in subjectCounts) {
+    const name = idToName[subId] || subId;  // fallback to ID if name missing
+    output += `<li>${name}: ${subjectCounts[subId]} days</li>`;
+  }
+  output += "</ul>";
+
+  document.getElementById("totalCount").innerHTML = output;
+}
+
+
+  async function drawChart() {
+    const res = await fetch('/get_attendance');
+    const data = await res.json();
+    const email = "{{ email }}";
+
+    const dateAttendance = {};
+
+    for (let date in data.attendance) {
+      let attended = false;
+      for (let subject in data.attendance[date]) {
+        if (data.attendance[date][subject].includes(email)) {
+          attended = true;
+          break;
+        }
+      }
+      dateAttendance[date] = attended ? 1 : 0;
+    }
+
+    const labels = Object.keys(dateAttendance).sort();
+    const values = labels.map(date => dateAttendance[date]);
+
+    const ctx = document.getElementById('chart').getContext('2d');
+    if (window.attChart) window.attChart.destroy();
+    window.attChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Attendance (1 = Present)',
+          data: values,
+          backgroundColor: '#1976d2'
+        }]
+      },
+      options: {
+        scales: {
+          y: { beginAtZero: true, max: 1 }
+        }
+      }
+    });
+  }
+
+  function logout() {
+    window.location.href = "/logout";
+  }
+
+  // 🚀 Load default section
+  window.onload = () => {
+    showSection('scan');
+  };
+</script>
+
+
+</body>
+</html>

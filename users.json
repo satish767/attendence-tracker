@@ -1,0 +1,22 @@
+{
+  "users": [
+    {
+      "name": "Ravi Kumar",
+      "email": "student1@example.com",
+      "password": "12345",
+      "role": "student"
+    },
+    {
+      "name": "Sneha Mehta",
+      "email": "student2@example.com",
+      "password": "12345",
+      "role": "student"
+    },
+    {
+      "name": "satish Sir",
+      "email": "admin@example.com",
+      "password": "admin123",
+      "role": "admin"
+    }
+  ]
+}
