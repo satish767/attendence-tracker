@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: sans-serif;
+      background-color: #f0f0f0;
+    }
+    .layout {
+      display: flex;
+      height: 100vh;
+    }
+    .sidebar {
+      width: 240px;
+      background-color: #1976d2;
+      color: white;
+      padding: 20px;
+    }
+    .sidebar h2 {
+      font-size: 18px;
+      margin-bottom: 30px;
+    }
+    .sidebar button {
+      display: block;
+      width: 100%;
+      padding: 10px 15px;
+      margin-bottom: 12px;
+      background-color: white;
+      color: #1976d2;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+      text-align: left;
+    }
+    .sidebar button:hover {
+      background-color: #e3f2fd;
+    }
+    .main {
+      flex-grow: 1;
+      padding: 30px;
+      background: white;
+      overflow-y: auto;
+    }
+    .profile {
+      text-align: right;
+      padding: 10px 20px;
+      background-color: #eeeeee;
+      font-weight: bold;
+    }
+    .section {
+      display: none;
+      margin-top: 20px;
+    }
+    .qr-image {
+      margin-top: 20px;
+      max-width: 300px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ✅ Display logged-in admin name -->
+<div class="profile">
+  {{ name }}
+</div>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>Admin Dashboard</h2>
+    <button onclick="showSection('qr')">📷 Generate QR Code</button>
+    <button onclick="showSection('attendance')">📋 View All Attendance</button>
+    <button onclick="logout()">🔓 Logout</button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main">
+    <!-- QR Code Section -->
+    <div id="qr" class="section">
+      <h3>Generate Today's QR Code</h3>
+
+      <!-- ✅ Subject Dropdown -->
+      <label for="subjectSelect">Select Subject:</label>
+      <select id="subjectSelect"></select>
+
+      <br><br>
+      <button onclick="generateQR()">Generate QR</button>
+      <div>
+        <img id="qrImage" class="qr-image" src="" >
+      </div>
+    </div>
+
+    <!-- Attendance Section -->
+    <div id="attendance" class="section">
+      <h3>All Students Attendance</h3>
+      <p>This section will show all attendance data.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  function showSection(id) {
+    const all = ['qr', 'attendance'];
+    all.forEach(sec => document.getElementById(sec).style.display = 'none');
+    document.getElementById(id).style.display = 'block';
+  }
+
+  function generateQR() {
+    const subject = document.getElementById("subjectSelect").value;
+    if (!subject) return alert("Please select a subject.");
+
+    fetch('/generate_qr', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subject })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById("qrImage").src = "/static/qr.png?ts=" + new Date().getTime();
+      } else {
+        alert("QR generation failed: " + data.error);
+      }
+    });
+  }
+
+  function loadSubjects() {
+    fetch('/get_subjects')
+      .then(res => res.json())
+      .then(data => {
+        const select = document.getElementById("subjectSelect");
+        select.innerHTML = ""; // clear existing
+        data.subjects.forEach(sub => {
+          const option = document.createElement("option");
+          option.value = sub.id;
+          option.text = sub.name;
+          select.appendChild(option);
+        });
+      });
+  }
+
+  function logout() {
+    window.location.href = "/logout";
+  }
+
+  // Load subject list and show QR section on page load
+  window.onload = function () {
+    loadSubjects();
+    showSection('qr');
+  };
+</script>
+</body>
+</html>

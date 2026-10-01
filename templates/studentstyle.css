@@ -1,0 +1,47 @@
+body {
+      font-family: sans-serif;
+      background-color: #f0f0f0;
+      text-align: center;
+      padding: 50px;
+    }
+    .btn {
+      display: block;
+      margin: 15px auto;
+      padding: 12px 25px;
+      background-color: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      width: 250px;
+      cursor: pointer;
+    }
+    .section {
+      display: none;
+      margin-top: 20px;
+    }
+    #reader {
+      width: 300px;
+      margin: auto;
+    }
+    canvas {
+      margin-top: 20px;
+      max-width: 100%;
+    }
+    .header {
+      width: 100%;
+      text-align: right;
+      padding: 15px 20px;
+      background: transparent;
+      box-sizing: border-box;
+    }
+
+    .profile-circle {
+      display: inline-block;
+      background-color: #1976d2;
+      color: white;
+      font-size: 14px;
+      padding: 10px 15px;
+      border-radius: 20px;
+      font-weight: bold;
+    }
